@@ -61,8 +61,9 @@ function timestamp(): string {
 function cmdGenerate(flags: Record<string, string | boolean>): void {
   const cwd = process.cwd()
   const input = resolve(cwd, typeof flags['input'] === 'string' ? flags['input'] : '.env.example')
-  const output = resolve(cwd, typeof flags['output'] === 'string' ? flags['output'] : 'env.d.ts')
   const scaffold = flags['scaffold'] === true
+  const defaultOutput = scaffold ? 'env.schema.ts' : 'env.d.ts'
+  const output = resolve(cwd, typeof flags['output'] === 'string' ? flags['output'] : defaultOutput)
 
   function run(): void {
     const content = readEnvFile(input)
@@ -73,12 +74,11 @@ function cmdGenerate(flags: Record<string, string | boolean>): void {
       return
     }
 
-    const dts = scaffold ? generateSchema(entries) : generateDts(entries)
-    const outFile = scaffold ? 'env.schema.ts' : output
+    const rendered = scaffold ? generateSchema(entries) : generateDts(entries)
 
-    writeFileSync(resolve(cwd, outFile), dts, 'utf8')
+    writeFileSync(output, rendered, 'utf8')
     console.log(
-      `${c.green('✓')} Generated ${c.cyan(outFile)} ` +
+      `${c.green('✓')} Generated ${c.cyan(output)} ` +
       c.dim(`(${entries.length} variable${entries.length === 1 ? '' : 's'})`),
     )
   }

@@ -20,7 +20,7 @@ type Schema = Record<string, FieldSpec>
 
 type Resolved<S extends Schema> = {
   [K in keyof S]: S[K]['required'] extends false
-    ? S[K]['default'] extends undefined
+    ? undefined extends S[K]['default']
       ? TypeMap[S[K]['type']] | undefined
       : TypeMap[S[K]['type']]
     : TypeMap[S[K]['type']]
@@ -29,14 +29,25 @@ type Resolved<S extends Schema> = {
 function coerce(raw: string, type: InferredType): unknown {
   switch (type) {
     case 'number': {
+      // `Number('')` and `Number('   ')` both yield 0 — reject them explicitly
+      // along with any non-finite result (NaN / Infinity).
+      if (raw.trim() === '') throw new Error(`expected a number, got "${raw}"`)
       const n = Number(raw)
-      if (Number.isNaN(n)) throw new Error(`expected a number, got "${raw}"`)
+      if (!Number.isFinite(n)) throw new Error(`expected a number, got "${raw}"`)
       return n
     }
     case 'boolean': {
       if (raw === 'true' || raw === '1') return true
       if (raw === 'false' || raw === '0') return false
       throw new Error(`expected "true" or "false", got "${raw}"`)
+    }
+    case 'url': {
+      try {
+        new URL(raw)
+      } catch {
+        throw new Error(`expected a valid URL, got "${raw}"`)
+      }
+      return raw
     }
     case 'json': {
       try {

@@ -69,6 +69,45 @@ describe('loadEnv', () => {
     )
     expect(env.OPTIONAL).toBeUndefined()
   })
+
+  it('types optional-without-default as T | undefined', () => {
+    const env = loadEnv(
+      { OPTIONAL: { type: 'string', required: false } },
+      {},
+    )
+    // Compile-time assertion: must be assignable to `string | undefined`,
+    // NOT to `string` alone. `@ts-expect-error` proves the type rejects it.
+    const _narrow: string | undefined = env.OPTIONAL
+    // @ts-expect-error — `undefined` is not assignable to `string`
+    const _wide: string = env.OPTIONAL
+    void _narrow; void _wide
+  })
+
+  it('rejects whitespace-only strings for number coercion', () => {
+    expect(() =>
+      loadEnv({ X: { type: 'number' } }, { X: '   ' }),
+    ).toThrow(/expected a number/)
+  })
+
+  it('rejects Infinity for number coercion', () => {
+    expect(() =>
+      loadEnv({ X: { type: 'number' } }, { X: 'Infinity' }),
+    ).toThrow(/expected a number/)
+  })
+
+  it('validates URL type and rejects garbage', () => {
+    expect(() =>
+      loadEnv({ X: { type: 'url' } }, { X: 'not-a-url' }),
+    ).toThrow(/expected a valid URL/)
+  })
+
+  it('accepts valid URLs', () => {
+    const env = loadEnv(
+      { DB: { type: 'url' } },
+      { DB: 'postgres://localhost:5432/db' },
+    )
+    expect(env.DB).toBe('postgres://localhost:5432/db')
+  })
 })
 
 describe('validateAgainstEntries', () => {

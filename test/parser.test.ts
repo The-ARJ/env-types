@@ -73,6 +73,44 @@ describe('parseEnvFile', () => {
     expect(entries).toHaveLength(2)
   })
 
+  it('supports the `export FOO=bar` shell-source prefix', () => {
+    const [e] = parseEnvFile('export PORT=3000')
+    expect(e).toMatchObject({ key: 'PORT', rawValue: '3000' })
+  })
+
+  it('does not treat `export` as part of the key', () => {
+    const [e] = parseEnvFile('   export   API_KEY=abc')
+    expect(e!.key).toBe('API_KEY')
+    expect(e!.rawValue).toBe('abc')
+  })
+
+  describe('inline comments', () => {
+    it('preserves `#` that lives inside double-quoted values', () => {
+      const [e] = parseEnvFile('PWD="abc # def"')
+      expect(e!.rawValue).toBe('abc # def')
+    })
+
+    it('preserves `#` that lives inside single-quoted values', () => {
+      const [e] = parseEnvFile("PWD='abc # def'")
+      expect(e!.rawValue).toBe('abc # def')
+    })
+
+    it('preserves `#` with no preceding whitespace (e.g. hash in password)', () => {
+      const [e] = parseEnvFile('PWD=abc#def')
+      expect(e!.rawValue).toBe('abc#def')
+    })
+
+    it('still strips a genuine space-prefixed inline comment', () => {
+      const [e] = parseEnvFile('PORT=3000 # the port')
+      expect(e!.rawValue).toBe('3000')
+    })
+
+    it('preserves URL fragments inside quoted values', () => {
+      const [e] = parseEnvFile('URL="https://example.com/#section"')
+      expect(e!.rawValue).toBe('https://example.com/#section')
+    })
+  })
+
   describe('type inference', () => {
     it('infers boolean for true/false', () => {
       expect(parseEnvFile('DEBUG=true')[0]!.inferredType).toBe('boolean')

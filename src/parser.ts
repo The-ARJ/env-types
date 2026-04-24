@@ -55,6 +55,31 @@ function inferType(raw: string): InferredType {
  * - Empty values mark variables as optional
  * - Blank lines reset the pending description
  */
+/**
+ * Strip an inline `# comment` from the tail of a value, but only when the `#`
+ * lives outside of any surrounding quotes. Returns the cleaned, trimmed value.
+ */
+function stripInlineComment(raw: string): string {
+  let quote: '"' | "'" | null = null
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i]
+    if (quote) {
+      if (ch === quote) quote = null
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch
+      continue
+    }
+    // A `#` that begins an inline comment must be preceded by whitespace
+    // (or start the value) so we don't truncate values like `pass#word`.
+    if (ch === '#' && (i === 0 || /\s/.test(raw[i - 1]!))) {
+      return raw.slice(0, i).trim()
+    }
+  }
+  return raw.trim()
+}
+
 export function parseEnvFile(content: string): EnvEntry[] {
   const lines = content.split(/\r?\n/)
   const entries: EnvEntry[] = []
@@ -74,27 +99,25 @@ export function parseEnvFile(content: string): EnvEntry[] {
       continue
     }
 
-    const eqIdx = trimmed.indexOf('=')
+    // Allow an optional `export ` prefix (`export FOO=bar`) for compatibility
+    // with `.env` files meant to be sourced from a shell.
+    const declaration = trimmed.startsWith('export ')
+      ? trimmed.slice('export '.length).trimStart()
+      : trimmed
+
+    const eqIdx = declaration.indexOf('=')
     if (eqIdx === -1) {
       pendingDescription = null
       continue
     }
 
-    const key = trimmed.slice(0, eqIdx).trim()
+    const key = declaration.slice(0, eqIdx).trim()
     if (!VALID_KEY_RE.test(key)) {
       pendingDescription = null
       continue
     }
 
-    // Strip inline comments: KEY=value # comment
-    let valueRaw = trimmed.slice(eqIdx + 1)
-    const inlineComment = valueRaw.match(/\s+#(.*)$/)
-    if (inlineComment) {
-      valueRaw = valueRaw.slice(0, inlineComment.index).trim()
-    } else {
-      valueRaw = valueRaw.trim()
-    }
-
+    const valueRaw = stripInlineComment(declaration.slice(eqIdx + 1))
     const stripped = stripQuotes(valueRaw)
     const isOptional = stripped === ''
 

@@ -62,6 +62,13 @@ describe('generateDts', () => {
     expect(dts.endsWith('\n')).toBe(true)
   })
 
+  it('escapes `*/` in descriptions so the JSDoc block stays well-formed', () => {
+    const entries = parseEnvFile('# description with */ injection\nKEY=x')
+    const dts = generateDts(entries)
+    expect(dts).not.toMatch(/\/\*\*[^]*\*\/[^*]*\/\*\*/)
+    expect(dts).toContain('*\\/')
+  })
+
   it('generates valid .d.ts for a realistic .env.example', () => {
     const content = `
 # App config
