@@ -1,0 +1,65 @@
+{
+  "name": "@the-arj/env-types",
+  "version": "0.1.0",
+  "description": "Zero-schema TypeScript type generation and runtime validation from .env files. Auto-generates env.d.ts from .env.example — no schema duplication.",
+  "keywords": [
+    "env",
+    "dotenv",
+    "typescript",
+    "types",
+    "environment",
+    "validation",
+    "codegen",
+    "cli"
+  ],
+  "author": "The-ARJ",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "env-types": "./dist/cli.cjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/The-ARJ/env-types.git"
+  },
+  "bugs": {
+    "url": "https://github.com/The-ARJ/env-types/issues"
+  },
+  "homepage": "https://github.com/The-ARJ/env-types#readme"
+}
